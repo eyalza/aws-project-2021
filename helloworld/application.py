@@ -63,9 +63,9 @@ def add_order():
 @application.route('/delete_order', methods=['POST'])
 def delete_order():
     data = request.get_json()
+    order_id = data['order_id']
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
     table = dynamodb.Table('orders')
-    order_id = data['order_id']
 
     response = table.delete_item(
         Key={
@@ -85,6 +85,39 @@ def edit_order():
     table.put_item(Item=data)
     
     return Response(json.dumps({'Output': 'Hello World'}), mimetype='application/json', status=200)
+    
+    
+@application.route('/upload_image', methods=['POST'])
+def upload_image():
+    data = request.get_json()
+    order_id = request.files['order_id']
+    image_car = request.files['image_car']
+    s3 = boto3.resource('s3', region_name='us-east-1')
+    bucket = 'jce-aws-project-images'
+
+    dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+    path  = "%s.jpg" %  (str(uuid.uuid4()))
+    
+    s3.Bucket(bucket).upload_fileobj(image_car, path, ExtraArgs={'ACL': 'public-read', 'ContentType': 'image/jpeg'}) 
+    img_url = 'https://jce-aws-project-images.s3.amazonaws.com/'+ path
+    
+    
+    table = dynamodb.Table('orders')
+    table.update_item(
+     Key={
+            'order_id': order_id
+        },
+        UpdateExpression='SET img_url = :img_url',
+        ExpressionAttributeValues={
+            ':img_url': img_url
+        }
+        )
+        
+    return {"img_url": img_url}
+ 
+
+
    
 if __name__ == '__main__':
     flaskrun(application)
