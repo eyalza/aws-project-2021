@@ -7,8 +7,9 @@ import requests
 import boto3
 from boto3.dynamodb.conditions import Key
 from boto3.dynamodb.conditions import Attr
+import simplejson as json
 import uuid
-from datetime import datetime
+
 
 
 application = Flask(__name__)
@@ -31,6 +32,7 @@ def post():
 def get_orders():
     data = request.get_json()
     uid = data['uid']    
+    print(uid)
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
     table = dynamodb.Table('orders')
     response = table.scan(FilterExpression = Attr('uid').eq(uid))
