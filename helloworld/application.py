@@ -25,6 +25,10 @@ def post():
     return Response(json.dumps({'Output': 'Hello World'}), mimetype='application/json', status=200)
     
 
+
+
+
+
 # DYNAMODB - READ ORDERS
 # curl -i -X POST -H "Content-Type: application/json" -d '{"uid": "1"}' http://localhost:8000/get_orders
 
@@ -85,8 +89,9 @@ def edit_order():
     table.put_item(Item=data)
     
     return Response(json.dumps({'Output': 'Hello World'}), mimetype='application/json', status=200)
-    
-    
+
+
+# S3 - UPLOAD IMAGE
 @application.route('/upload_image', methods=['POST'])
 def upload_image():
     bucket = 'jce-aws-project-images'
@@ -96,8 +101,35 @@ def upload_image():
     
     s3.Bucket(bucket).upload_fileobj(image_car, path, ExtraArgs={'ACL': 'public-read', 'ContentType': 'image/jpeg'}) 
     img_url = 'https://jce-aws-project-images.s3.amazonaws.com/'+ path
+    
     return {"img_url": img_url}
  
+ 
+ 
+ # REKOGNITION - 
+
+@application.route('/analyze_image', methods=['POST'])
+def analyze_image():
+    data = request.get_json()
+    image_url = data['image_url']
+    key = image_url.replace("https://jce-aws-project-images.s3.amazonaws.com/", "")
+
+    bucket = 'jce-aws-project-images'
+    s3 = boto3.resource('s3', region_name = 'us-east-1')
+    image = s3.Object(bucket, key) # Get an Image from S3
+    img_data = image.get()['Body'].read() # Read the image
+
+    rekognition = boto3.client("rekognition", region_name = 'us-east-1')
+    
+    response = rekognition.detect_text(Image={'Bytes':img_data})
+    detected_text = response['TextDetections'][0]['DetectedText']
+    confidence = response['TextDetections'][0]['Confidence']
+
+    print(detected_text)
+    print(confidence)
+
+
+    return json.dumps({"detected_text": detected_text, "confidence": confidence})
 
 
    
